@@ -1,22 +1,23 @@
 # lxd-ansible
 
+## Requirements
+
 ```sh
 $ sudo snap install distrobuilder --classic
 distrobuilder 1.0 from Stéphane Graber (stgraber) installed
+
+$ sudo apt install debootstrap rsync gpg squashfs-tools
 ```
+
+## Build
 
 ```sh
 $ distrobuilder build-lxd ubuntu.yaml
 
-$ lxc image import lxd.tar.xz rootfs.squashfs --alias mycontainerimage
-Image imported with fingerprint: 009349195858651a0f883de804e64eb82e0ac8c0bc51880
+$ lxc image import lxd.tar.xz rootfs.squashfs --alias lxd-ansible
+Image imported with fingerprint: 012345...
 
-$ lxc image list mycontainerimage
-+------------------+--------------+--------+--------------+--------+---------+-----------------------------+
-|      ALIAS       | FINGERPRINT  | PUBLIC | DESCRIPTION  |  ARCH  |  SIZE   |         UPLOAD DATE         |
-+------------------+--------------+--------+--------------+--------+---------+-----------------------------+
-| mycontainerimage | 009349195858 | no     | Ubuntu focal | x86_64 | 98.58MB | Oct 3, 2020 at 5:10pm (UTC) |
-+------------------+--------------+--------+--------------+--------+---------+-----------------------------+
+$ lxc image list lxd-ansible
 ```
 
 ## Links
