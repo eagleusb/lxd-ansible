@@ -140,77 +140,73 @@ packages:
       deb http://archive.ubuntu.com/ubuntu {{ image.release }}-updates main restricted universe multiverse
       deb http://security.ubuntu.com/ubuntu {{ image.release }}-security main restricted universe multiverse
     architectures:
-    - amd64
-    - i386
-
-  - name: sources.list
-    url: |-
-      deb http://ports.ubuntu.com/ubuntu-ports {{ image.release }} main restricted universe multiverse
-      deb http://ports.ubuntu.com/ubuntu-ports {{ image.release }}-updates main restricted universe multiverse
-      deb http://ports.ubuntu.com/ubuntu-ports {{ image.release }}-security main restricted universe multiverse
-    architectures:
-    - armhf
-    - arm64
-    - powerpc
-    - powerpc64
-    - ppc64el
+      - amd64
+      - i386
 
 actions:
-- trigger: post-update
-  action: |-
-    #!/bin/sh
-    set -eux
+  - trigger: post-update
+    action: |-
+      #!/bin/sh
+      set -eux
 
-    # Create the ubuntu user account
-    getent group sudo >/dev/null 2>&1 || groupadd --system sudo
-    useradd --create-home -s /bin/bash -G sudo -U ubuntu
-  variants:
-  - default
+      # Create the ubuntu user account
+      getent group sudo >/dev/null 2>&1 || groupadd --system sudo
+      useradd --create-home -s /bin/bash -G sudo -U ubuntu
 
-- trigger: post-packages
-  action: |-
-    #!/bin/sh
-    set -eux
+      # Remove /etc/securetty PAM reference
+      sed -i \
+        's/pam_unix\.so\Wnullok_secure$/pam_unix.so nullok/' \
+        /etc/pam.d/common-auth
+    variants:
+      - default
+  - trigger: post-packages
+    action: |-
+      #!/bin/bash
+      set -eux
 
-    # Enable systemd-networkd
-    systemctl enable systemd-networkd
-  releases:
-  - bionic
-  - eoan
-  - focal
-  - groovy
+      # Enable systemd-networkd
+      systemctl enable systemd-networkd
 
-- trigger: post-packages
-  action: |-
-    #!/bin/sh
-    set -eux
+      # Install Ansible
+      pip3 install \
+      --no-cache-dir \
+      --disable-pip-version-check \
+      --no-compile \
+      ansible>=${ANSIBLE_VERS:-2.9}
+    releases:
+      - groovy
+  - trigger: post-packages
+    action: |-
+      #!/bin/bash
+      set -eux
 
-    # Make sure the locale is built and functional
-    locale-gen en_US.UTF-8
-    update-locale LANG=en_US.UTF-8
+      # Make sure the locale is built and functional
+      locale-gen en_US.UTF-8
+      update-locale LANG=en_US.UTF-8
 
-    # Cleanup underlying /run
-    mount -o bind / /mnt
-    rm -rf /mnt/run/*
-    umount /mnt
+      # Generate dummy SSH keypair
+      mkdir -m 0700 ~/.ssh
+      ssh-keygen -t ed25519 -f ~/.ssh/dummy \
+      -N '' \
+      -C "ansible-dummy-key"
+      # chmod 0600 ~/.ssh/dummy* && \
+      # mv ~/.ssh/dummy.pub ~/.ssh/authorized_keys
 
-    # Cleanup temporary shadow paths
-    rm /etc/*-
+      echo -e "dummy ssh key:\n"
+      cat ~/.ssh/dummy
 
-- trigger: post-files
-  action: |-
-    #!/bin/sh
-    set -eux
+      # Cleanup underlying /run
+      mount -o bind / /mnt
+      rm -rf /mnt/run/*
+      umount /mnt
 
-    TARGET="x86_64"
-    [ "$(uname -m)" = "aarch64" ] && TARGET="arm64"
+      # Cleanup temporary shadow paths
+      rm /etc/*-
 
-    update-grub
-    grub-install --uefi-secure-boot --target="${TARGET}-efi" --no-nvram --removable
-    update-grub
-    sed -i "s#root=[^ ]*#root=/dev/sda2#g" /boot/grub/grub.cfg
-  types:
-  - vm
+targets:
+  lxc:
+    create-message: |
+      {{ image.name }} is ready.
+      Use the /root/.ssh/dummy for Ansible SSH authentication
 
-mappings:
-  architecture_map: debian
+      /!\ do not use that key for any production, it's unsafe.
