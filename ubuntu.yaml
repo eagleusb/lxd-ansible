@@ -19,7 +19,7 @@ environment:
   clear_defaults: false
   variables:
     - DEBIAN_FRONTEND: noninteractive
-    - ANSSIBLE_VERS: "2.10"
+    - ANSIBLE_VERS: "2.10"
 
 mappings:
   architecture_map: debian
